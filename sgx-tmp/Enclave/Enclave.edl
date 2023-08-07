@@ -1,12 +1,13 @@
 enclave
 {
+	from "sgx_tswitchless.edl" import *;
+
 	trusted
 	{
-		public int ecall_test([in, size=message_len]const char* message, size_t message_len);
+		public int ecall_test([in, size=message_len]const char* message, size_t message_len) transition_using_threads;
 	};
 	untrusted
 	{
-		void ocall_print([in, string]const char* str);
+		void ocall_print([in, string]const char* str) transition_using_threads;
 	};
 };
-

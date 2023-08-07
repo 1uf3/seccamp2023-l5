@@ -5,6 +5,7 @@
 #include <sgx_urts.h>
 #include "error_print.hpp"
 #include <openssl/bio.h>
+#include <sgx_uswitchless.h>
 
 #define ENCLAVE_FILENAME "enclave.signed.so"
 
@@ -21,10 +22,22 @@ int initialize_enclave() {
 	sgx_status_t ret = SGX_SUCCESS;
 	int updated = 0;
 
+	sgx_uswitchless_config_t us_config = SGX_USWITCHLESS_CONFIG_INITIALIZER;
+	void* enclave_ex_p[32] = {0};
+	enclave_ex_p[SGX_CREATE_ENCLAVE_EX_SWITCHLESS_BIT_IDX] = &us_config;
 
-	ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, &token, &updated, &global_eid, NULL);
+	ret = sgx_create_enclave_ex(
+		ENCLAVE_FILENAME, 
+		SGX_DEBUG_FLAG, 
+		&token, 
+		&updated, 
+		&global_eid, 
+		NULL, 
+		SGX_CREATE_ENCLAVE_EX_SWITCHLESS, 
+		(const void**)enclave_ex_p
+		);
 	if (ret != SGX_SUCCESS) {
-		printf("App: error %#x, failed to create enclave \n", ret);
+		print_sgx_status(ret);
 		return -1;
 	}
     //0埋めしたダミーの起動トークンでEnclaveを作成する
@@ -52,4 +65,5 @@ int main() {
 		return -1;
 	}
 	 
+	 return 0;
 }
