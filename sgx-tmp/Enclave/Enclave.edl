@@ -8,15 +8,19 @@ enclave
 	trusted
 	{
 		public int ecall_seal_data(
-			[in, size=plain_data_size]const char* plain_data, size_t plain_data_size,
-			[out, count=sealed_data_size]uint8_t* sealed_data, size_t sealed_data_size
+			[in, size=plain_data_size]uint8_t* plain_data, size_t plain_data_size,
+			[out, count=1024]uint8_t* sealed_data, [out]size_t* sealed_data_size
 		);
 		public int ecall_unseal_data(
-			[in, count=sealed_data_size]uint8_t* sealed_data_u, size_t sealed_data_size,
-			[out, count=plain_data_size]char* plain_data, size_t plain_data_size
+			[in, count=sealed_data_size]uint8_t* sealed_data, size_t sealed_data_size,
+			[out, count=1024]uint8_t* plain_data, [out]uint32_t* plain_data_size
 		);
 	};
 	untrusted
 	{
+		void ocall_print_str([in, string]const char* str);
+		void ocall_print_size(size_t size);
+		void ocall_print_32size(uint32_t size);
+		void ocall_print_status(sgx_status_t s);
 	};
 };
