@@ -3,6 +3,40 @@
 #include "sgx_tseal.h"
 #include <cstring>
 
+int ecall_check_master_password(uint8_t* password_u, size_t password_size) {
+    size_t stored_password_size = 0;
+    sgx_status_t status = ocall_get_sealed_master_password_len(&stored_password_size);
+        ocall_print_status(status);
+    uint8_t* stored_password = new uint8_t[stored_password_size];
+    status = ocall_get_master_password(stored_password, stored_password_size);
+        ocall_print_status(status);
+    size_t valid_password_size = stored_password_size;
+    if(valid_password_size < password_size) {
+        valid_password_size = password_size;
+    }
+    if (memcmp(password_u, stored_password, valid_password_size) != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+int ecall_seal_data(uint8_t* plain_data, size_t plain_data_size, 
+                        uint8_t* sealed_data, size_t* sealed_data_size) {
+    ocall_print_str((char*)plain_data);
+	*sealed_data_size = sgx_calc_sealed_data_size(0, plain_data_size);
+    ocall_print_size(*sealed_data_size);
+	sgx_status_t status = sgx_seal_data(
+		0, 
+		NULL, 
+		plain_data_size, 
+		plain_data,
+		*sealed_data_size,
+		(sgx_sealed_data_t*)sealed_data
+        );
+    ocall_print_status(status);
+    return 0;
+}
+
 int ecall_random_password_generate(size_t passwordSize, uint8_t* createdPassword) {
     sgx_status_t status = sgx_read_rand(createdPassword, passwordSize);
     if (SGX_SUCCESS != status) {
@@ -15,7 +49,8 @@ int ecall_random_password_generate(size_t passwordSize, uint8_t* createdPassword
     return 0;
 }
 
-int ecall_register_password(uint8_t* plain_password, size_t plain_password_size) {
+int ecall_register_password(uint8_t* key_u, size_t key_size,
+                                uint8_t* plain_password, size_t plain_password_size) {
 	uint32_t sealed_password_size = sgx_calc_sealed_data_size(0, plain_password_size);
     //    ocall_print_32size(sealed_password_size);
     uint8_t sealed_password[sealed_password_size];
@@ -31,22 +66,23 @@ int ecall_register_password(uint8_t* plain_password, size_t plain_password_size)
         ocall_print_status(status);
     }
     int retval = 0;
-    status = ocall_store_password(&retval, sealed_password, (size_t)sealed_password_size);
+    status = ocall_store_password(&retval, key_u, key_size, sealed_password, (size_t)sealed_password_size);
     if (SGX_SUCCESS != status) {
         ocall_print_status(status);
     }
     return retval;
 }
 
-int ecall_retrive_password(uint8_t* plain_password) {
+int ecall_retrive_password(uint8_t* key_u, size_t key_size,
+                            uint8_t* plain_password) {
     size_t sealed_password_size = 0;
-    sgx_status_t status = ocall_get_sealed_password_len(&sealed_password_size);
+    sgx_status_t status = ocall_get_sealed_password_len(&sealed_password_size, key_u, key_size);
     if (SGX_SUCCESS != status) {
         ocall_print_status(status);
     }
     //    ocall_print_size(sealed_password_size);
     uint8_t* sealed_password = new uint8_t[sealed_password_size];
-    status = ocall_get_password(sealed_password, sealed_password_size);
+    status = ocall_get_password(key_u, key_size, sealed_password, sealed_password_size);
     if (SGX_SUCCESS != status) {
         ocall_print_status(status);
     }
