@@ -1,26 +1,29 @@
-enclave
-{
+enclave {
 	include "sgx_trts.h"
 	include "sgx_tseal.h"
+	include "../Enclave/Enclave.hpp"
 	
 	from "sgx_tswitchless.edl" import *;
 
 	trusted
 	{
-		public int ecall_seal_data(
-			[in, size=plain_data_size]uint8_t* plain_data, size_t plain_data_size,
-			[out, count=1024]uint8_t* sealed_data, [out]size_t* sealed_data_size
+		public int ecall_register_password([in, count=plain_password_size]uint8_t* plain_password, size_t plain_password_size);
+		public int ecall_retrive_password([out, count=100]uint8_t* plain_password);
+		public int ecall_random_password_generate(
+			size_t passwordSize, 
+			[out, count=passwordSize]uint8_t* createdPassword
 		);
-		public int ecall_unseal_data(
-			[in, count=sealed_data_size]uint8_t* sealed_data, size_t sealed_data_size,
-			[out, count=1024]uint8_t* plain_data, [out]uint32_t* plain_data_size
-		);
+		public test_struct_t ecall_bleed();
 	};
 	untrusted
 	{
+		int ocall_store_password([in, count=sealed_password_size]uint8_t* sealed_password, size_t sealed_password_size);
+		size_t ocall_get_sealed_password_len();
+		void ocall_get_password([out, count=sealed_password_size]uint8_t* sealed_password, size_t sealed_password_size);
 		void ocall_print_str([in, string]const char* str);
 		void ocall_print_size(size_t size);
 		void ocall_print_32size(uint32_t size);
 		void ocall_print_status(sgx_status_t s);
+		void ocall_print_uint8_t([in, count=s_size]uint8_t* s, size_t s_size);
 	};
 };
